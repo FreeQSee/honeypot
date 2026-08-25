@@ -68,17 +68,11 @@ No compromised home devices. This is **rented scanning capacity** - servers paid
 
 ### On attribution by geography
 
-ASN and country data disagreed between sources. One IP resolved as Euro Crypt EOOD (Bulgaria) on one service and AS197170 TechTies Inc. (Netherlands) on another.
-
-Both can be correct: ASN reflects who *routes* the block, while ISP fields often reflect who it's *registered or leased* to. Registration country, routing country, and physical location are three different things and none is authoritative.
-
-**ASN is the stronger identifier** - it comes from BGP and can't be faked without breaking connectivity. Country is treated as approximate throughout.
+ASN and ISP data disagreed between sources. One IP returned Euro Crypt EOOD (Bulgaria) from ipinfo and AS197170 TechTies Inc. (Netherlands) from VirusTotal. ASN reflects who routes the block; ISP fields often reflect who it's leased to. Sources are recorded by ASN, with country noted but not relied on.
 
 ### Behavioural signature
 
-Events per session clustered at exactly **5.0 or 8.0**, never between. Two fixed tool workflows, distinguishable without reference to source IP - useful when addresses rotate.
-
-Notably, two IPs in the same /24 showed different signatures (5.0 and 8.0), indicating adjacency does not imply a shared operator on shared hosting.
+Events per session sit at either 5.0 or 8.0 across the top sources, with nothing in between - two fixed workflows repeating. Two IPs in the same /24 showed different values, so adjacency on shared hosting doesn't indicate a shared operator.
 
 ---
 
@@ -126,11 +120,11 @@ Nine distinct commands across 49 sessions and 14 IPs:
 | 8.8.8.8 | 53 |
 | httpbin.org | 80, 443 |
 
-`direct-tcpip` is an SSH port-forwarding request - the attacker asking the server to open a connection on their behalf. Successful forwarding turns the host into a proxy: outbound traffic wears the victim's IP, and reaches whatever the victim's network position allows.
+`direct-tcpip` is an SSH port-forwarding request. If the server honours it, the attacker relays traffic through the host - their traffic, the host's IP and network position.
 
-None of these destinations is a target. `httpbin.org` echoes requests back; DNS resolvers answer instantly. All three were asking one question: **does forwarding work here?**
+All destinations were connectivity checks rather than targets: two public DNS resolvers and httpbin.org, which echoes requests back. Cowrie logs the request without forwarding, so none succeeded.
 
-All three gained access using common credentials (`root/admin`, `root/root`) - two on the first attempt. They did not brute-force extensively, but that reflects the honeypot's permissive accept-list rather than prior credential knowledge.
+All three gained access with common credentials, two on the first attempt - a function of the honeypot's accept-list, not prior knowledge.
 
 Cowrie logs the request without forwarding, so all three received nothing.
 
@@ -146,15 +140,11 @@ Cowrie logs the request without forwarding, so all three received nothing.
 
 ## Conclusions
 
-**Volume is not signal.** 97% of events never progressed past authentication. Effective triage means knowing which 2% to read, not reading faster.
-
 **The threat landscape is commodity.** Every source was known-abusive rented hosting running fixed scripts. No targeting, no adaptation, no human in the loop.
 
 **Attackers profile defenders.** 28 of 49 command sessions were checking whether the host was a honeypot before committing a payload - the single most common behaviour observed.
 
-**Access has several markets.** RedTail wanted CPU for mining. The proxy attempts wanted network position and a clean IP. The mass brute-forcers wanted credentials, use unknown. Same door, different economies.
-
-**Configuration shapes what you can see.** A permissive credential list makes brute-force invisible by removing the failures that define it. Detection depends on the target refusing things.
+**Access has several markets.** RedTail wanted CPU for mining. The proxy attempts wanted network position and a clean IP. The mass brute-forcers wanted credentials, use unknown.
 
 ---
 
