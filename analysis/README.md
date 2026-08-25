@@ -1,0 +1,169 @@
+# Honeypot Traffic Analysis
+
+Structured triage of SSH honeypot data, reducing ~10,000 events to the handful worth human attention.
+
+**Collection window:** 22 Aug 2026 17:00 - 23 Aug 2026 22:00 GMT+3
+**Sensor:** Cowrie SSH honeypot on a public VPS, logs shipped to Wazuh over WireGuard
+
+---
+
+## Method
+
+Four layers, each narrowing the field so the next is affordable:
+
+| Layer | Question | Unit |
+|---|---|---|
+| 1 | How much of what? | Events |
+| 2 | Who is doing it? | Source IPs |
+| 3 | What do they do once in? | Sessions |
+| 4 | What's in the interesting ones? | Commands |
+
+10,028 events -> 2,482 sessions -> 49 with commands -> 1 real intrusion.
+
+---
+
+## Layer 1 - Volume
+
+| eventid | Count | Share |
+|---|---|---|
+| cowrie.session.connect | 2,025 | 20.2% |
+| cowrie.session.closed | 2,024 | 20.2% |
+| cowrie.client.version | 1,912 | 19.1% |
+| cowrie.client.kex | 1,903 | 19.0% |
+| cowrie.login.failed | 1,836 | 18.3% |
+| cowrie.login.success | 78 | 0.8% |
+| cowrie.command.input | 49 | 0.5% |
+| cowrie.direct-tcpip.request | 23 | 0.2% |
+| cowrie.session.file_upload | 7 | 0.1% |
+| *(remaining types)* | 171 | 1.7% |
+
+**97% is connection mechanics** - knocking, failing, disconnecting.
+
+**4% login success rate.** Cowrie's `userdb.txt` was restricted to six common credentials mid-collection; before that it accepted anything.
+
+---
+
+## Layer 2 - Sources
+
+**100 distinct IPs. 15,383 events at time of export.**
+
+| | Share of events |
+|---|---|
+| Top 1 | 26.0% |
+| Top 5 | 75.5% |
+| Top 10 | 92.3% |
+| Top 20 | 97.2% |
+
+Traffic is **concentrated, not diffuse.** Ten sources produce over nine-tenths of it.
+
+### Infrastructure
+
+Every enriched IP shared three properties:
+
+- **Hosting infrastructure**, never residential or mobile
+- **No anonymization** - no VPN, Tor, proxy, or relay detected
+- **100% abuse confidence** on AbuseIPDB
+
+No compromised home devices. This is **rented scanning capacity** - servers paid for deliberately, on providers chosen for weak abuse enforcement.
+
+### On attribution by geography
+
+ASN and country data disagreed between sources. One IP resolved as Euro Crypt EOOD (Bulgaria) on one service and AS197170 TechTies Inc. (Netherlands) on another.
+
+Both can be correct: ASN reflects who *routes* the block, while ISP fields often reflect who it's *registered or leased* to. Registration country, routing country, and physical location are three different things and none is authoritative.
+
+**ASN is the stronger identifier** - it comes from BGP and can't be faked without breaking connectivity. Country is treated as approximate throughout.
+
+### Behavioural signature
+
+Events per session clustered at exactly **5.0 or 8.0**, never between. Two fixed tool workflows, distinguishable without reference to source IP - useful when addresses rotate.
+
+Notably, two IPs in the same /24 showed different signatures (5.0 and 8.0), indicating adjacency does not imply a shared operator on shared hosting.
+
+---
+
+## Layer 3 - Sessions
+
+**2,482 sessions. 49 ran commands - 2%.**
+
+Every one of those 49 ran **exactly one command**. No session progressed to a second.
+
+---
+
+## Layer 4 - Commands
+
+Nine distinct commands across 49 sessions and 14 IPs:
+
+| Count | Command |
+|---|---|
+| 28 | Honeypot-detection and profiling script *(see [full text](honeypot-detect-script.txt))* |
+| 7 | `uname -s -v -n -r -m` |
+| 7 | `/bin/./uname -s -v -n -r -m` |
+| 2 | `uname -a` |
+| 1 | `uptime` |
+| 1 | `ls -la /` |
+| 1 | `exit` |
+| 1 | `echo "test"` |
+| 1 | RedTail deployment chain *(see [redtail/](../redtail/))* |
+
+**46 of 49 are reconnaissance.** Fingerprint, then leave.
+
+### Two techniques worth noting
+
+**`/bin/./uname`** - the `/.` is functionally meaningless. It exists to defeat naive string matching on `uname` in monitoring tools. Deliberate evasion.
+
+**The detection script** - 28 sessions ran a single command that probes the shell's *error messages*: running a nonexistent file, running a nonexistent command, and writing then executing a temporary script. It's checking whether the shell is real. Cowrie's emulated filesystem is where that check fails, which explains why nothing followed.
+
+---
+
+## Proxy attempts
+
+23 `direct-tcpip` requests from **three source IPs**, all to connectivity-test destinations:
+
+| Destination | Port |
+|---|---|
+| 1.1.1.1 | 53 |
+| 8.8.8.8 | 53 |
+| httpbin.org | 80, 443 |
+
+`direct-tcpip` is an SSH port-forwarding request - the attacker asking the server to open a connection on their behalf. Successful forwarding turns the host into a proxy: outbound traffic wears the victim's IP, and reaches whatever the victim's network position allows.
+
+None of these destinations is a target. `httpbin.org` echoes requests back; DNS resolvers answer instantly. All three were asking one question: **does forwarding work here?**
+
+All three gained access using common credentials (`root/admin`, `root/root`) - two on the first attempt. They did not brute-force extensively, but that reflects the honeypot's permissive accept-list rather than prior credential knowledge.
+
+Cowrie logs the request without forwarding, so all three received nothing.
+
+**This attack was anticipated.** The VPS runs deny-by-default egress, permitting only DNS, NTP, and the WireGuard management tunnel - verified by establishing a SOCKS proxy through the host and confirming outbound HTTPS was blocked at the firewall.
+
+---
+
+## File uploads
+
+7 `file_upload` events, all from a single session. All belong to the RedTail cryptomining campaign - **[full analysis](../redtail/)**.
+
+---
+
+## Conclusions
+
+**Volume is not signal.** 97% of events never progressed past authentication. Effective triage means knowing which 2% to read, not reading faster.
+
+**The threat landscape is commodity.** Every source was known-abusive rented hosting running fixed scripts. No targeting, no adaptation, no human in the loop.
+
+**Attackers profile defenders.** 28 of 49 command sessions were checking whether the host was a honeypot before committing a payload - the single most common behaviour observed.
+
+**Access has several markets.** RedTail wanted CPU for mining. The proxy attempts wanted network position and a clean IP. The mass brute-forcers wanted credentials, use unknown. Same door, different economies.
+
+**Configuration shapes what you can see.** A permissive credential list makes brute-force invisible by removing the failures that define it. Detection depends on the target refusing things.
+
+---
+
+## Files
+
+| File | Contents |
+|---|---|
+| `event-types.csv` | Layer 1 breakdown |
+| `top20-attacker-ips.csv` | Enriched source data - ASN, org, country, abuse score |
+| `commands.csv` | All 49 command events |
+| `honeypot-detect-script.txt` | The full profiling script |
+| `screenshots/` | Dashboard views |
