@@ -1,0 +1,16 @@
+ip,events,sessions,events_per_session,pct_of_total,asn,as_org,asn_type,country,abuse_confidence
+45.153.34.149,5054,1007,5.02,50.53,AS197170,TechTies Inc.,hosting,Netherlands,100
+45.148.10.240,715,140,5.11,7.15,AS48090,TECHOFF SRV LIMITED,hosting,Netherlands,100
+195.178.110.218,703,140,5.02,7.03,AS48090,TECHOFF SRV LIMITED,hosting,Netherlands,100
+195.178.110.228,692,136,5.09,6.92,AS48090,TECHOFF SRV LIMITED,hosting,Netherlands,100
+2.57.122.150,656,130,5.05,6.56,AS47890,UNMANAGED LTD,hosting,Romania,100
+92.118.39.77,534,105,5.09,5.34,AS47890,UNMANAGED LTD,hosting,Romania,100
+92.118.39.49,322,62,5.19,3.22,AS47890,UNMANAGED LTD,hosting,Romania,100
+195.178.110.232,252,49,5.14,2.52,AS48090,TECHOFF SRV LIMITED,hosting,Netherlands,100
+139.19.117.129,176,22,8.0,1.76,AS680,Verein zur Foerderung eines Deutschen Forschungsnetzes e.V.,education,Germany,100
+176.53.159.196,133,19,7.0,1.33,AS154383,ZORNTECH WEB SOLUTIONS,hosting,Poland,100
+171.243.149.32,65,13,5.0,0.65,AS7552,Viettel Group,isp,Vietnam,100
+92.118.39.14,63,9,7.0,0.63,AS47890,UNMANAGED LTD,hosting,Romania,100
+195.178.110.137,60,11,5.45,0.6,AS48090,TECHOFF SRV LIMITED,hosting,Netherlands,100
+171.231.179.255,55,12,4.58,0.55,AS7552,Viettel Group,isp,Vietnam,100
+172.222.111.195,55,11,5.0,0.55,AS20115,Charter Communications LLC,isp,USA,100
