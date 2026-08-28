@@ -29,9 +29,7 @@ Rules 100306-100313 are children of 100303, since they match command content. Ru
 
 Severity here reflects what a **honeypot** is for, not what a production host would need.
 
-On a production system the priorities invert: a successful brute force should trigger isolation immediately, and everything after it becomes informational because the response has already fired.
-
-Same events, different levels.
+On a production system the priorities invert. There the goal is protecting the system from any threat. On a honeypot the goal is understanding how the attackers think.
 
 ---
 
@@ -48,7 +46,7 @@ Same events, different levels.
 </rule>
 ```
 
-28 of 49 command sessions ran a script that probes the shell's error messages - running a nonexistent file, running a nonexistent command, then writing and executing a temporary script. It is checking whether the shell is real before committing a payload.
+A script that probes the shell's error messages to check whether it is real before commiting a payload.
 
 **Level 11.** Because this is a honeypot, my goal is to understand attackers and what they are after. This matters more than a brute force succeeding, when `userdb.txt` contains six of the most common passwords.
 
@@ -73,8 +71,6 @@ In a real environment I would treat this as informational - after a successful b
 
 **Match:** `/\./` catches the technique anywhere, not just on `uname`. Because this is a honeypot no one uses, there are no legitimate commands to generate false positives. In a normal environment this pattern would fire constantly.
 
-The `\.` is an escaped dot - unescaped, `.` is a regex wildcard.
-
 ---
 
 ### 100308 - System discovery
@@ -88,11 +84,9 @@ The `\.` is an escaped dot - unescaped, `.` is a regex wildcard.
 </rule>
 ```
 
-Basic reconnaissance grouped into one rule. Individually these tell you nothing, and they were the most common commands after the detection script.
+Basic reconnaissance commands grouped into one rule. None of them means much on its own.
 
 **Level 5.** Informational, below the generic command rule.
-
-`ls` and `id` were considered and dropped - both match as substrings inside unrelated words (`tools`, `false`, `uuid`, `android`), and Wazuh's default regex engine does not support word boundaries without switching to PCRE2.
 
 ---
 
@@ -145,7 +139,7 @@ The combination is worse than either part: strip the immutable flag, write the k
 
 Observed once, in the [RedTail](../redtail/) intrusion.
 
-**Why three rules instead of one.** `chattr` and `authorized_keys` appear independently in real attacks - RedTail's `clean.sh` used `chattr` on crontabs with no key involved. Separate rules catch each technique on its own; the child catches the combination and wins when both are present, so the alert count stays at one.
+**Why three rules instead of one.** `chattr` and `authorized_keys` appear independently in real attacks - RedTail's `clean.sh` used `chattr` on crontabs with no key involved. Separate rules catch each technique on its own; the child catches the combination and wins when both are present.
 
 ---
 
@@ -155,7 +149,7 @@ Observed once, in the [RedTail](../redtail/) intrusion.
 <rule id="100312" level="9">
   <if_sid>100303</if_sid>
   <field name="input">echo -e \\x</field>
-  <description>Cowrie: obfuscation</description>
+  <description>Cowrie: obfuscated information</description>
   <mitre><id>T1027.010</id></mitre>
 </rule>
 ```
@@ -209,11 +203,9 @@ Payload delivery. All 7 uploads in the collection window came from the RedTail s
 </rule>
 ```
 
-An SSH port-forwarding request. If honoured, the attacker relays traffic through the host - their traffic, the host's IP and network position.
+An SSH port-forwarding request. If honoured, the attacker relays traffic through the host.
 
 **Level 6.** Being a honeypot, outbound firewall rules already stop attackers using it as a proxy, so the event is informational.
-
-The parent technique is used rather than a sub-technique: the attempt was blocked, so what they intended to reach is unknown.
 
 ---
 
@@ -228,11 +220,9 @@ The parent technique is used rather than a sub-technique: the attempt was blocke
 </rule>
 ```
 
-The attacker offers an SSH public key and the server replies whether it is listed in `authorized_keys` - before any authentication happens. That answer is free.
+The attacker offers a SSH public key and the server replies whether it is listed in `authorized_keys` - before any authentication happens.
 
-Used to find hosts where a key they already control is installed: malware plants a key, the operator later sweeps the internet offering it, and anything that says yes is still theirs. The RedTail campaign has reused the same key since 2023.
-
-Not spraying - they are testing one key they already hold, which is stuffing rather than guessing.
+It's how they find hosts they already own: malware plants a key and later sweeps for anything that accepts it. The RedTail campaign has used the same key since 2023 - the one in my uploads matches the one in write-ups from three years ago.
 
 ---
 
