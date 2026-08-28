@@ -29,11 +29,9 @@ Rules 100306-100313 are children of 100303, since they match command content. Ru
 
 Severity here reflects what a **honeypot** is for, not what a production host would need.
 
-A honeypot exists to collect intelligence. What an attacker does after getting in is more valuable than the fact they got in, so post-access behaviour outranks authentication.
-
 On a production system the priorities invert: a successful brute force should trigger isolation immediately, and everything after it becomes informational because the response has already fired.
 
-Same events, different levels, both correct for their environment.
+Same events, different levels.
 
 ---
 
@@ -253,21 +251,6 @@ Not spraying - they are testing one key they already hold, which is stuffing rat
 | 6 | 100315 | Proxy abuse attempt |
 | 6 | 100316 | Credential stuffing |
 | 5 | 100308 | System discovery |
-
----
-
-## Not implemented
-
-Behaviours present in the RedTail scripts but not yet observed executing in a live session. Rules for these would be guesses rather than detections, so they are left until the behaviour appears.
-
-| Behaviour | Why it matters |
-|---|---|
-| `wget` / `curl` | Payload download |
-| crontab modification | Persistence |
-| `systemctl disable` / `stop` | Competitor eviction, disabling defences |
-| Writes to `.bashrc` / `.profile` | Shell startup persistence |
-| History clearing | Anti-forensics |
-| `base64 -d` | Obfuscated payload decoding |
 
 ---
 
