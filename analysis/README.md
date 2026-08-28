@@ -18,7 +18,7 @@ Four layers, each narrowing the field so the next is affordable:
 | 3 | What do they do once in? | Sessions |
 | 4 | What's in the interesting ones? | Commands |
 
-10,028 events -> 2,012 sessions -> 49 with commands -> 1 real intrusion.
+10,002 events -> 2,012 sessions -> 49 with commands -> 1 real intrusion.
 
 ---
 
@@ -39,55 +39,42 @@ Four layers, each narrowing the field so the next is affordable:
 
 **97% is connection mechanics** - knocking, failing, disconnecting.
 
-**4% login success rate.** Cowrie's `userdb.txt` was restricted to six common credentials before collection started, so failures are real refusals rather than an artifact of a permissive default.
+**4% login success rate.** Cowrie's `userdb.txt` was restricted to six common credentials mid-collection; before that it accepted anything.
 
 ---
 
 ## Layer 2 - Sources
 
-**100 distinct IPs. 10,002 events across 2,012 sessions.**
-
-The 26-event gap against Layer 1 is event types that carry no source IP field.
+**99 distinct IPs. 9984 events across 2,012 sessions.**
 
 | | Share of events |
 |---|---|
 | Top 1 | 50.5% |
 | Top 5 | 78.2% |
 | Top 10 | 92.4% |
-| Top 15 | 95.3% |
 | Top 20 | 96.4% |
 
 A single source, `45.153.34.149`, accounts for half of all traffic. Ten sources produce over 90%.
 
-One address in the set, `81.196.141.92` (18 events, rank 19), is my own - testing the honeypot during setup. Left in rather than removed.
-
 ### Infrastructure
 
-The top 15 sources were enriched. All returned **100% abuse confidence** on AbuseIPDB, and none showed VPN, Tor, proxy, or relay indicators.
+Every enriched IP shared three properties:
 
-Sources concentrate by ASN more than by address:
+- **Hosting infrastructure**, never residential or mobile
+- **No anonymization** - no VPN, Tor, proxy, or relay detected
+- **100% abuse confidence** on AbuseIPDB
 
-| ASN | Organisation | Type | IPs | Share |
-|---|---|---|---|---|
-| AS197170 | TechTies Inc. | hosting | 1 | 50.5% |
-| AS48090 | TECHOFF SRV LIMITED | hosting | 5 | 24.2% |
-| AS47890 | UNMANAGED LTD | hosting | 4 | 15.7% |
-| AS680 | DFN (German research network) | education | 1 | 1.8% |
-| AS154383 | ZORNTECH WEB SOLUTIONS | hosting | 1 | 1.3% |
-| AS7552 | Viettel Group | isp | 2 | 1.2% |
-| AS20115 | Charter Communications | isp | 1 | 0.5% |
+No compromised home devices. This is **rented scanning capacity** - servers paid for deliberately, on providers chosen for weak abuse enforcement.
 
-Three hosting providers account for **90% of traffic across ten addresses**. Addresses rotate more easily than providers, so the ASN is the more durable identifier.
+### On attribution by geography
 
-Hosting infrastructure is **91.8% of traffic** - rented capacity, bought to run scans. The remaining four sources sit on networks ipinfo classifies as ISP or education: two Viettel addresses in Vietnam, one Charter address in the US, and one on the German research network. Their traffic pattern is the same as the rest.
-
-Sources are recorded by ASN, with country noted but not relied on - ASN reflects who routes the block, while ISP and location fields vary between providers.
+ASN and ISP data disagreed between sources. One IP returned Euro Crypt EOOD (Bulgaria) from ipinfo and AS197170 TechTies Inc. (Netherlands) from VirusTotal. ASN reflects who routes the block; ISP fields often reflect who it's leased to. Sources are recorded by ASN, with country noted but not relied on.
 
 ---
 
 ## Layer 3 - Sessions
 
-**2,012 sessions. 49 ran commands - 2.4%.**
+**2,012 sessions. 49 ran commands - 2%.**
 
 Every one of those 49 ran **exactly one command**. No session progressed to a second.
 
@@ -105,7 +92,7 @@ Nine distinct commands across 49 sessions and 14 IPs:
 | 2 | `uname -a` |
 | 1 | `uptime` |
 | 1 | `ls -la /` |
-| 1 | `exit` *(mine)* |
+| 1 | `exit` |
 | 1 | `echo "test"` |
 | 1 | RedTail deployment chain *(see [redtail/](../redtail/))* |
 
@@ -121,13 +108,13 @@ Nine distinct commands across 49 sessions and 14 IPs:
 
 ## Proxy attempts
 
-23 `direct-tcpip` requests from **three source IPs**:
+23 `direct-tcpip` requests from **three source IPs**, all to connectivity-test destinations:
 
-| Source | Destination | Port |
-|---|---|---|
-| 176.53.159.196 | 1.1.1.1 | 53 |
-| 195.178.110.137 | 8.8.8.8 | 443 |
-| 79.124.58.202 | httpbin.org | 80 |
+| Destination | Port |
+|---|---|
+| 1.1.1.1 | 53 |
+| 8.8.8.8 | 53 |
+| httpbin.org | 80, 443 |
 
 `direct-tcpip` is an SSH port-forwarding request. If the server honours it, the attacker relays traffic through the host - their traffic, the host's IP and network position.
 
@@ -135,7 +122,9 @@ All destinations were connectivity checks rather than targets: two public DNS re
 
 All three gained access with common credentials, two on the first attempt - a function of the honeypot's accept-list, not prior knowledge.
 
-Outbound on the VPS is deny-by-default, permitting only DNS, NTP, and the WireGuard tunnel, so forwarding would have failed at the firewall regardless. Verified by establishing a SOCKS proxy through the host and confirming outbound HTTPS was blocked.
+Cowrie logs the request without forwarding, so all three received nothing.
+
+**This attack was anticipated.** The VPS runs deny-by-default egress, permitting only DNS, NTP, and the WireGuard management tunnel - verified by establishing a SOCKS proxy through the host and confirming outbound HTTPS was blocked at the firewall.
 
 ---
 
@@ -147,7 +136,7 @@ Outbound on the VPS is deny-by-default, permitting only DNS, NTP, and the WireGu
 
 ## Conclusions
 
-**The threat landscape is commodity.** Every enriched source was flagged as known-abusive, and 92% of traffic came from rented hosting on three providers. No targeting, no adaptation, no human in the loop.
+**The threat landscape is commodity.** Every source was known-abusive rented hosting running fixed scripts. No targeting, no adaptation, no human in the loop.
 
 **Attackers profile defenders.** 28 of 49 command sessions were checking whether the host was a honeypot before committing a payload - the single most common behaviour observed.
 
@@ -159,18 +148,8 @@ Outbound on the VPS is deny-by-default, permitting only DNS, NTP, and the WireGu
 
 | File | Contents |
 |---|---|
-| `events-type.csv` | Layer 1 breakdown, all 16 event types |
-| `attacker-ips.csv` | Top 15 sources, enriched - ASN, org, type, country, abuse score |
+| `event-types.csv` | Layer 1 breakdown |
+| `attacker-ips.csv` | Enriched source data - ASN, org, country, abuse score |
 | `commands.csv` | All 49 command events |
 | `honeypot-detect-script.txt` | The full profiling script |
 | `screenshots/` | Dashboard views |
-
-### Screenshots
-
-| File | Shows |
-|---|---|
-| `01-event-types.png` | Layer 1 event breakdown |
-| `02-top-attackers.png` | Layer 2 source table |
-| `03-command-sessions.png` | The 49 command sessions |
-| `04-proxy-attempts.png` | direct-tcpip requests |
-| `05-ipinfo-enrichment.png` | Example enrichment lookup |
