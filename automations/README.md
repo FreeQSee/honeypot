@@ -2,7 +2,8 @@
 
 Two daily scripts and two dashboards. Enrichment that would otherwise be manual, and detection of behaviour that hasn't been seen before.
 
-**Runs on:** Wazuh VM - where the alerts, the indexer and the dashboards are. 
+**Runs on:** Wazuh VM - where the alerts, the indexer and the dashboards are.
+
 **Schedule:** cron, daily.
 
 ---
