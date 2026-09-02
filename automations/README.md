@@ -2,7 +2,7 @@
 
 Two daily scripts and two dashboards. Enrichment that would otherwise be manual, and detection of behaviour that hasn't been seen before.
 
-**Runs on:** Wazuh VM. The VPS has deny-by-default egress and can't reach the enrichment APIs.
+**Runs on:** Wazuh VM - where the alerts, the indexer and dashboards are.
 **Schedule:** cron, daily.
 
 ---
@@ -11,9 +11,9 @@ Two daily scripts and two dashboards. Enrichment that would otherwise be manual,
 
 | Need | Built as | Why |
 |---|---|---|
-| Context on attacking IPs | `enrich.py` | Requires external APIs. A dashboard can't call out |
-| Spot new attacker behaviour | `newbehaviour.py` | Requires memory of yesterday. A dashboard only sees now |
-| Daily situational view | Dashboards | Live, filterable, no code needed |
+| Context on attacking IPs | `enrich.py` | Requires external APIs. A dashboard can't call out. |
+| Spot new attacker behaviour | `newbehaviour.py` | A dashboard can't compare periods and surface what's new. |
+| Daily situational view | Dashboards | Live, filterable, no code needed. |
 
 **There is no daily summary script.** A dashboard filtered to the last 24 hours *is* the summary. Writing a script to compute the same figures and dump them somewhere produces a worse copy of what's already on screen.
 
@@ -47,7 +47,7 @@ Replaces the manual lookup work done during triage: pasting each source IP into 
 | 4 | ipinfo - ASN number and name |
 | 5 | Write one document per IP to `honeypot-auto` |
 
-**Aggregation, not document retrieval.** Asking for the alerts and counting them in Python means pulling tens of thousands of documents to produce a list of a few hundred. The indexer does the grouping and returns only the result.
+**Aggregation, not document retrieval.** An aggregation groups by source IP and returns only the list of IPs and their counts. Document retrieval returns every matching alert in full, leaving the script to loop through them and tally the IPs itself - thousands of documents across the network to produce a few hundred lines.
 
 ### The event threshold
 
@@ -65,7 +65,7 @@ Enriching all of them spends the AbuseIPDB free tier (1,000 checks/day) in two r
 | abuse score | `abuseConfidenceScore` | - |
 | usage type | `usageType` | - |
 
-ipinfo only adds the ASN number outright. The rest duplicates AbuseIPDB - but not always. `isp` is who the block is registered or leased to; `as_name` is who routes it. Layered registration is deliberate in bulletproof hosting, and the disagreement between the two fields is what exposes it.
+ipinfo only adds the ASN number outright. The rest duplicates AbuseIPDB - but not always. Layered registration is deliberate in bulletproof hosting, and the disagreement between the two fields is what exposes it.
 
 Storing one field would look tidier and lose the finding. Both are kept, named after their source.
 
@@ -92,8 +92,6 @@ The activity dashboard lists every command ever run on the honeypot. It cannot s
 | 2 | Read every command already in `honeypot-seen` into a set |
 | 3 | Anything not in the set is logged at WARNING and written to `honeypot-seen` |
 
-**A set, not a list.** Every command from the aggregation is checked against the baseline. Set membership is constant time; a list would be scanned end to end on every check.
-
 **New commands are logged at WARNING**, everything routine at INFO, so they can be pulled out on their own:
 
 ```bash
@@ -110,13 +108,7 @@ command, first_seen, times_run
 
 `command` is mapped as `keyword`, not `text`. The comparison needs exact matching, and `text` would break commands into words.
 
-`times_run` is a snapshot from the day of discovery and never updates. The field answers *when this appeared*, not how often it happens - that's what the dashboards are for.
-
-### No rule filter
-
-Filtering to `rule.id: 100303` returns only the commands that matched **none** of the specific rules. Rules 100306-100313 also match on `data.input`, and Wazuh fires the most specific rule, so the parent only catches the leftovers.
-
-No filter is needed. Nothing else in the index has a `data.input` field, so the aggregation is already scoped.
+`times_run` is a snapshot from the day of discovery and never updates. The field answers *when this appeared*, not how often it happened.
 
 ---
 
@@ -166,16 +158,9 @@ The scripts don't run as `admin`, which can read, write, delete and reconfigure 
 | `wazuh-alerts-*` | `read` |
 | `honeypot-auto`, `honeypot-seen` | `read`, `write` |
 
-Created under **Security -> Roles**, then mapped to a user from the role's **Mapped users** tab. The role does nothing until it's mapped.
-
-```bash
-curl -k -u 'index_user:PASSWORD' "https://localhost:9200/honeypot-seen/_count"   # count
-curl -k -u 'index_user:PASSWORD' "https://localhost:9200/_cat/indices"           # 403
-```
-
 ### 2. Indices
 
-Created with explicit mappings rather than letting OpenSearch infer them on first write. Inferred text fields split into words and can't be aggregated; inferred dates arrive as strings and the dashboard time filter won't work.
+Created with explicit mappings rather than letting OpenSearch infer them on first write. 
 
 ```bash
 curl -k -u 'admin:PASSWORD' -X PUT "https://localhost:9200/honeypot-auto" \
@@ -206,8 +191,6 @@ curl -k -u 'admin:PASSWORD' -X PUT "https://localhost:9200/honeypot-seen" \
 
 ### 3. Credentials
 
-Copy `.honeypot-env.example`, fill it in, `chmod 600`. Single quotes, no spaces around `=`.
-
 ```bash
 export INDEXER_USER='index_user'
 export INDEXER_PASSWORD='...'
@@ -215,9 +198,7 @@ export ABUSEIPDB_KEY='...'
 export IPINFO_TOKEN='...'
 ```
 
-Read by the shell, not by Python. The scripts only ever look at their own environment, so swapping the source later - Docker, systemd, a secrets manager - changes nothing in the code.
-
-Environment variables are visible to anything running as the same user. Better hygiene than hardcoding, not a security boundary.
+Nothing is hardcoded. The values live in /home/haw/.honeypot-env, readable only by the owner (chmod 600), and the shell loads them into the environment before starting the script.
 
 ### 4. Cron
 
@@ -226,9 +207,9 @@ Environment variables are visible to anything running as the same user. Better h
 10 11 * * * . /home/haw/.honeypot-env && /usr/bin/python3 /home/haw/newbehaviour.py
 ```
 
-Cron gets a near-empty environment and reads no startup files, so each entry sources the env file itself. Absolute paths throughout for the same reason.
+Cron starts with almost nothing set - no API keys, no PATH worth relying on. That's why each line loads the env file first and calls python by its full path.
 
-Scheduled late morning because the VM is started manually. **Cron doesn't catch up on missed runs** - a day with the machine off has no data. The gap stays visible rather than hidden, since `collected_at` is per-run.
+The schedule is late morning because the VM is started by hand.
 
 ---
 
@@ -242,10 +223,6 @@ Both scripts run unattended, so a failure has to be survivable and recorded.
 | API quota exceeded | Checked separately - a rejection is a successful HTTP response that `try` won't catch |
 | Missing field in a response | `.get()` with a fallback: `unknown` for text, `-1` for integers |
 
-Fallbacks match the mapping type. `"unknown"` written into an integer field is rejected, and the write response isn't checked, so it would fail silently.
-
-Both scripts log to file via Python's `logging` - timestamp and level on every line. Under cron, printed output goes nowhere.
-
 ---
 
 ## Files
@@ -256,4 +233,4 @@ Both scripts log to file via Python's `logging` - timestamp and level on every l
 | `newbehaviour.py` | First-seen command detection |
 | `.honeypot-env.example` | Variable names, placeholder values |
 
-Logs at `/home/haw/enrich.log` and `/home/haw/newbehaviour.log`. Not rotated.
+Logs at `/home/haw/enrich.log` and `/home/haw/newbehaviour.log`.
