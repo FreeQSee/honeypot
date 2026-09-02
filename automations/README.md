@@ -118,8 +118,6 @@ Two index patterns: `honeypot-auto` on `collected_at`, `wazuh-alerts-*` on `time
 
 ### Honeypot enrichment - who
 
-![Honeypot enrichment dashboard](automations/enrichment-dashboard.png)
-
 | Panel | Metric | Bucket |
 |---|---|---|
 | Top ASNs by event volume | Sum `event_count` | `as_name` |
@@ -133,8 +131,6 @@ Two index patterns: `honeypot-auto` on `collected_at`, `wazuh-alerts-*` on `time
 **Unreported infrastructure is the panel worth checking.** Nearly every enriched IP comes back at maximum abuse confidence, which only confirms the honeypot is being swept by known scanners. A zero means nobody has reported that address yet - either new infrastructure or a narrow target set.
 
 ### Honeypot activity - what happened
-
-![Honeypot activity dashboard](automations/activity-dashboard.png)
 
 | Panel | Type | Bucket |
 |---|---|---|
@@ -236,5 +232,5 @@ Both scripts run unattended, so a failure has to be survivable and recorded.
 | `enrich.py` | IP enrichment |
 | `newbehaviour.py` | First-seen command detection |
 | `.honeypot-env.example` | Variable names, placeholder values |
-
-Logs at `/home/haw/enrich.log` and `/home/haw/newbehaviour.log`.
+| `activity-dashboard.png` | Alerts, volume, commands run |
+| `enrichment-dashboard.png` | ASN, country, usage type, abuse score |
