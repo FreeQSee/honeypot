@@ -2,7 +2,7 @@
 
 Two daily scripts and two dashboards. Enrichment that would otherwise be manual, and detection of behaviour that hasn't been seen before.
 
-**Runs on:** Wazuh VM - where the alerts, the indexer and dashboards are.
+**Runs on:** Wazuh VM - where the alerts, the indexer and the dashboards are. 
 **Schedule:** cron, daily.
 
 ---
@@ -132,14 +132,14 @@ Two index patterns: `honeypot-auto` on `collected_at`, `wazuh-alerts-*` on `time
 
 ### Honeypot activity - what happened
 
-| Panel | Type | Bucket |
+| Panel | Metric | Bucket |
 |---|---|---|
-| Total events | Metric | - |
-| Events over time | Line | Date histogram, `timestamp` |
-| Alerts by rule | Horizontal bar | `rule.description` |
-| Top source IPs | Data table | `data.src_ip` |
-| Commands executed | Data table | `data.input` |
-| High severity | Data table | `rule.description` and `data.src_ip`, filtered `rule.level >= 12` |
+| Total events | Count | - |
+| Events over time | Count | Date histogram, `timestamp` |
+| Alerts by rule | Count | `rule.description` |
+| Top source IPs | Count | `data.src_ip` |
+| Commands executed | Count | `data.input` |
+| High severity | Count | `rule.description` and `data.src_ip`, filtered `rule.level >= 12` |
 
 **Alerts by rule** shows which detections fire against real traffic. A rule that has never matched is either wrong or waiting - both worth knowing.
 
@@ -198,7 +198,7 @@ export ABUSEIPDB_KEY='...'
 export IPINFO_TOKEN='...'
 ```
 
-Nothing is hardcoded. The values live in /home/haw/.honeypot-env, readable only by the owner (chmod 600), and the shell loads them into the environment before starting the script.
+Nothing is hardcoded. The values live in `/home/haw/.honeypot-env`, readable only by the owner `chmod 600`, and the shell loads them into the environment before starting the script.
 
 ### 4. Cron
 
@@ -207,7 +207,7 @@ Nothing is hardcoded. The values live in /home/haw/.honeypot-env, readable only 
 10 11 * * * . /home/haw/.honeypot-env && /usr/bin/python3 /home/haw/newbehaviour.py
 ```
 
-Cron starts with almost nothing set - no API keys, no PATH worth relying on. That's why each line loads the env file first and calls python by its full path.
+Cron starts with almost nothing set - no API keys, no `PATH` worth relying on. That's why each line loads the env file first and calls python by its full path.
 
 The schedule is late morning because the VM is started by hand.
 
@@ -215,7 +215,7 @@ The schedule is late morning because the VM is started by hand.
 
 ## Error handling
 
-Both scripts run unattended, so a failure has to be survivable and recorded.
+Both scripts run unattended, so a single failure can't take down the run.
 
 | Failure | Handling |
 |---|---|
