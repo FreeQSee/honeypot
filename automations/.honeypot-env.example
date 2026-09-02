@@ -1,0 +1,5 @@
+
+export INDEXER_USER='username'
+export INDEXER_PASSWORD='password'
+export ABUSEIPDB_KEY='AbuseIPDB key'
+export IPINFO_TOKEN='IPInfo token'
