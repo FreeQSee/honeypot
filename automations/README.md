@@ -118,7 +118,7 @@ Two index patterns: `honeypot-auto` on `collected_at`, `wazuh-alerts-*` on `time
 
 ### Honeypot enrichment - who
 
-![Honeypot enrichment dashboard](/enrichment-dashboard.png)
+![Honeypot enrichment dashboard](automations/enrichment-dashboard.png)
 
 | Panel | Metric | Bucket |
 |---|---|---|
@@ -134,7 +134,7 @@ Two index patterns: `honeypot-auto` on `collected_at`, `wazuh-alerts-*` on `time
 
 ### Honeypot activity - what happened
 
-![Honeypot activity dashboard](/activity-dashboard.png)
+![Honeypot activity dashboard](automations/activity-dashboard.png)
 
 | Panel | Type | Bucket |
 |---|---|---|
