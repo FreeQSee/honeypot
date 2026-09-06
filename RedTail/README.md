@@ -254,4 +254,10 @@ Both append `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKmYl4Yh… dj@vanta` to `/root
 
 ## Files
 
-*(pending)*
+| File | Contents |
+|---|---|
+| `setup.sh` | Installer script, as recovered |
+| `clean.sh` | Competitor removal script, as recovered |
+| `command-chain.txt` | The full session command, including the complete SSH key |
+| `hashes.txt` | Full SHA-256 of all seven artifacts |
+| `sessions.csv` | Timeline - date, session ID, source IP, files uploaded, rule |

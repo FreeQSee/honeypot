@@ -1,0 +1,18 @@
+RedTail campaign - SHA-256 of all artifacts uploaded to the honeypot
+Uploaded by 130.12.180.51 and 77.90.185.20, identical set, every session
+Collection window: 22 Aug 2026 - 3 Sep 2026
+
+Scripts
+-------
+1e70b63472772e3f5092ffe9c3573470e73590e6ab6d93fdcede1d368a5fd72d  setup.sh    installer
+3f3a11bafabb1a35db913cfe51995f2e357d049e268860175876ae5a93d23892  clean.sh    competitor removal
+
+Miner binaries - UPX-packed, XMRig-derived
+------------------------------------------
+f0aa83bbbd2c75e2f71ec16029ee5fcfad59f3a8efa30a500b815f0f6c18d987  x86-64      linux/amd64
+8e1a67a5c03b3cd818f046c7a1605afccc0ee5ce437a0d099881f1872b54bc70  i386        linux/i386
+d1cac82f44b54b0fd244a9e4122811e9ae108a197c7a65a20fd2e7552683e68e  aarch64     linux/arm64
+d70f917e35813a7ae323e6b2b539d6dbbfc3a3a6599f1fed93430b14ca08b141  ARM         linux/arm
+3f3bf218089d1488617d37f8a5116bb2791eb39ce06a1b5bc9a4cdfe5e94dd39  RISC-V 64   linux/riscv64
+
+All five packed with UPX 5.2.0.
