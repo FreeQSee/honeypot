@@ -34,25 +34,23 @@ Different ASNs, different countries, both rented hosting at maximum abuse confid
 
 `77.90.185.20` uploaded **all seven of the same files** as `130.12.180.51` - identical SHA-256s, not merely the same malware family.
 
-That diverges from published RedTail observation. SANS' 2024 analysis found payload hashes were unique per batch submission and never reused between IPs. Here one build is served from two ASNs in two countries across a week.
-
 ### Timeline
 
 | Date | Session | Source |
-|---|---|---|---|
-| 23 Aug 19:21 | `2164f7c342d1` | `130.12.180.51` | 
-| 23 Aug 23:15 | `4f93cc74f36d` | `130.12.180.51` | 
+|---|---|---|
+| 23 Aug 19:21 | `2164f7c342d1` | `130.12.180.51` |
+| 23 Aug 23:15 | `4f93cc74f36d` | `130.12.180.51` |
 | 24 Aug 19:23 | `4c3ad9299be1` | `130.12.180.51` |
-| 28 Aug 06:33 | `bd5183b86afd` | `130.12.180.51` | 
-| 29 Aug 15:21 | `4274139047bb` | `77.90.185.20` | 
-| 29 Aug 17:13 | `fe80d6d8ba2d` | `130.12.180.51` | 
-| 31 Aug 18:39 | `9be203343aad` | `130.12.180.51` | 
-| 31 Aug 20:00 | `cc9fd4c7b78f` | `130.12.180.51` | 
-| 1 Sep 13:45 | `3913e33d1831` | `130.12.180.51` | 
-| 2 Sep 15:51 | `b39bc4d26a4c` | `130.12.180.51` | 
-| 2 Sep 18:54 | `c3f1198a50d3` | `130.12.180.51` | 
-| 3 Sep 14:42 | `5ebc36734b58` | `130.12.180.51` | 
-| 3 Sep 20:27 | `57aeb1316f54` | `130.12.180.51` | 
+| 28 Aug 06:33 | `bd5183b86afd` | `130.12.180.51` |
+| 29 Aug 15:21 | `4274139047bb` | `77.90.185.20` |
+| 29 Aug 17:13 | `fe80d6d8ba2d` | `130.12.180.51` |
+| 31 Aug 18:39 | `9be203343aad` | `130.12.180.51` |
+| 31 Aug 20:00 | `cc9fd4c7b78f` | `130.12.180.51` |
+| 1 Sep 13:45 | `3913e33d1831` | `130.12.180.51` |
+| 2 Sep 15:51 | `b39bc4d26a4c` | `130.12.180.51` |
+| 2 Sep 18:54 | `c3f1198a50d3` | `130.12.180.51` |
+| 3 Sep 14:42 | `5ebc36734b58` | `130.12.180.51` |
+| 3 Sep 20:27 | `57aeb1316f54` | `130.12.180.51` |
 
 **Roughly one session a day, no pattern in the hour.** Automated, unattended, and indifferent to whether the previous attempt succeeded.
 
@@ -94,7 +92,7 @@ Four stages: **clear competitors, install miner, backdoor, confirm.**
 
 **Persistence is not in the uploaded files.** It is typed into the session. That is why neither script contains a cron entry or a systemd unit - the backdoor is an SSH key, written directly.
 
-**They use `>` to overwrite entire `authorized_keys` file.** Every existing key on the host is destroyed.
+**They use `>` to overwrite the entire `authorized_keys` file.** Every existing key on the host is destroyed.
 
 **`chattr -ia` then `chattr +ai`** - strip whatever immutability a previous actor set, write, then set immutable and append-only so the next one can't. The same technique `clean.sh` uses against rival miners.
 
@@ -102,7 +100,7 @@ Four stages: **clear competitors, install miner, backdoor, confirm.**
 
 ### The key is 2.5 years old - generated on 29 June 2023
 
-The RSA key is **byte-identical** to the one recorded in other analysis of RedTail. Same modulus, same comment: `rsa-key-20230629`.
+The RSA key is **byte-identical** to the one recorded in other analyses of RedTail. Same modulus, same comment: `rsa-key-20230629`.
 
 **The payload gets rebuilt. The key does not.** Hash IOCs for the binaries have a shelf life measured in months; this key has held across two and a half years and multiple independent honeypots. It is the most durable indicator in the campaign.
 
@@ -132,13 +130,13 @@ Two scripts, five miner binaries - one per architecture.
 | `8e1a67a5…` | linux/i386 | 1,838,060 | 5,238,428 | 35.09% | ok |
 | `d1cac82f…` | linux/arm64 | 1,696,412 | 4,199,936 | 40.39% | ok |
 | `d70f917e…` | linux/arm | 1,448,252 | 3,928,888 | 36.86% | ok |
-| `3f3bf218…` | linux/riscv64 | 1,759,768 | 3,570,216 | 49.29% | ok *(see below)* |
+| `3f3bf218…` | linux/riscv64 | 1,759,768 | 3,570,216 | 49.29% | ok |
 
 ### The build stamp
 
 UPX writes its own version into the decompression stub. **All five report UPX 5.2.0**, released **08 June 2026**.
 
-One packer version across five architectures means one build run on one toolchain. And the same hashes appear from 23 Aug to 1 Sep, from two ASNs - **no rebuild during the observation window.** The build is recent; the operator is not iterating on it weekly.
+One packer version across five architectures means one build run on one toolchain. And the same hashes appear from 23 Aug to 3 Sep, from two ASNs - **no rebuild during the observation window.** The build is recent; the operator is not iterating on it weekly.
 
 ---
 
@@ -240,15 +238,15 @@ Both append `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKmYl4Yh… dj@vanta` to `/root
 
 **One kit, two rented hosts.** Both IPs delivered byte-identical files and both brute-forced their way in. Different ASNs, different countries, same payload - infrastructure rented separately to run the same operation.
 
-**The infrastructure is older than the payload.** Binaries packed with a UPX release from June 2026; the SSH backdoor key generated in June 2023 and still in use, byte-identical to other RedTail reports.
+**The infrastructure is older than the payload.** Binaries packed with a UPX release from June 2026; the SSH backdoor key generated in June 2023 and still in use, byte-identical to the key in other RedTail reports.
 
 **Access is exclusive, not shared.** `authorized_keys` is overwritten and locked immutable, competing miners are stripped out of cron, and `/tmp`, `/var/tmp` and `/dev/shm` are emptied. Most of the effort goes into denying the host to anyone else.
 
-**A RISC-V build is being deployed that published analysis have not recorded until now**, in every session, alongside the four documented architectures.
+**A RISC-V build is being deployed that published analyses have not recorded until now**, in every session, alongside the four documented architectures.
 
 ---
 
-## Still open
+## Ongoing
 
 **The honeypot is still collecting.** The same hashes have held for twelve days; other reports show this family rotating hashes per batch, so a rebuild is expected. Sample hashes, packer versions and the SSH key will be tracked across future sessions to establish the rebuild cadence and catch further architecture additions.
 
