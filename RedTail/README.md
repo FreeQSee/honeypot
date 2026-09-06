@@ -3,29 +3,14 @@
 Twelve days of repeated intrusion by one operator - how they got in, what they ran, and static analysis of what they left.
 
 **Collection window:** 22 Aug 2026 17:00 - 3 Sep 2026 20:27 GMT+3
+
 **Sensor:** Cowrie SSH honeypot on a public VPS, alerts in Wazuh - see [analysis](../analysis/), which covers the first 28 hours only
+
 **Sources:** `130.12.180.51`, `77.90.185.20`
-**Analysis environment:** Network-isolated VM, samples copied, originals preserved. Nothing executed.
 
-Detection is by custom Wazuh rules `100303`, `100310`, `100311`. The rules and dashboards live in [automations](../automations/); the raw alert exports are not reproduced here.
-
----
-
-## Method
-
-Session data first, files second. The logs say who, how, and how often; the binaries say what.
-
-| Layer | Question | Unit |
-|---|---|---|
-| 1 | Who keeps coming back? | Sessions |
-| 2 | How did they get in? | Login attempts |
-| 3 | What do they run? | Command chain |
-| 4 | What did they leave? | Files |
-| 5 | What is the payload? | Strings |
+**Analysis environment:** Network-isolated VM, samples copied, originals preserved, nothing executed.
 
 13 sessions -> 2 IPs -> 7 files uploaded every time -> 1 miner, five architectures.
-
-**No disassembly was needed for any of this.** Ghidra is queued, but everything below came from Cowrie logs and four command-line tools.
 
 ---
 
@@ -33,10 +18,10 @@ Session data first, files second. The logs say who, how, and how often; the bina
 
 | IP | ASN | Org | Country | Abuse | Type |
 |---|---|---|---|---|---|
-| `130.12.180.51` | [AS202412](https://ipinfo.io/AS202412) | Omegatech LTD | Germany | 100% | Hosting |
-| `77.90.185.20` | [AS213790](https://ipinfo.io/AS213790) | Limited Network LTD | Lithuania | 100% | Hosting |
+| `130.12.180.51` | AS202412 | Omegatech LTD | Germany | 100% | Hosting |
+| `77.90.185.20` | AS213790 | Limited Network LTD | Lithuania | 100% | Hosting |
 
-Different ASNs, different countries, both rented hosting at maximum abuse confidence. Neither is residential and neither is anonymised - consistent with every other source in the [first-window analysis](../analysis/).
+Different ASNs, different countries, both rented hosting at maximum abuse confidence. Neither is residential and neither is anonymised.
 
 | IP | Sessions | Files uploaded per session |
 |---|---|---|
@@ -53,27 +38,25 @@ That diverges from published RedTail observation. SANS' 2024 analysis found payl
 
 ### Timeline
 
-| Date | Session | Source | Rule |
+| Date | Session | Source |
 |---|---|---|---|
-| 23 Aug 19:21 | `2164f7c342d1` | `130.12.180.51` | 100303 |
-| 23 Aug 23:15 | `4f93cc74f36d` | `130.12.180.51` | 100303 |
-| 24 Aug 19:23 | `4c3ad9299be1` | `130.12.180.51` | 100303 |
-| 28 Aug 06:33 | `bd5183b86afd` | `130.12.180.51` | 100311 |
-| 29 Aug 15:21 | `4274139047bb` | `77.90.185.20` | 100311 |
-| 29 Aug 17:13 | `fe80d6d8ba2d` | `130.12.180.51` | 100311 |
-| 31 Aug 18:39 | `9be203343aad` | `130.12.180.51` | 100311 |
-| 31 Aug 20:00 | `cc9fd4c7b78f` | `130.12.180.51` | 100311 |
-| 1 Sep 13:45 | `3913e33d1831` | `130.12.180.51` | 100311 |
-| 2 Sep 15:51 | `b39bc4d26a4c` | `130.12.180.51` | 100311 |
-| 2 Sep 18:54 | `c3f1198a50d3` | `130.12.180.51` | 100311 |
-| 3 Sep 14:42 | `5ebc36734b58` | `130.12.180.51` | 100311 |
-| 3 Sep 20:27 | `57aeb1316f54` | `130.12.180.51` | 100311 |
+| 23 Aug 19:21 | `2164f7c342d1` | `130.12.180.51` | 
+| 23 Aug 23:15 | `4f93cc74f36d` | `130.12.180.51` | 
+| 24 Aug 19:23 | `4c3ad9299be1` | `130.12.180.51` |
+| 28 Aug 06:33 | `bd5183b86afd` | `130.12.180.51` | 
+| 29 Aug 15:21 | `4274139047bb` | `77.90.185.20` | 
+| 29 Aug 17:13 | `fe80d6d8ba2d` | `130.12.180.51` | 
+| 31 Aug 18:39 | `9be203343aad` | `130.12.180.51` | 
+| 31 Aug 20:00 | `cc9fd4c7b78f` | `130.12.180.51` | 
+| 1 Sep 13:45 | `3913e33d1831` | `130.12.180.51` | 
+| 2 Sep 15:51 | `b39bc4d26a4c` | `130.12.180.51` | 
+| 2 Sep 18:54 | `c3f1198a50d3` | `130.12.180.51` | 
+| 3 Sep 14:42 | `5ebc36734b58` | `130.12.180.51` | 
+| 3 Sep 20:27 | `57aeb1316f54` | `130.12.180.51` | 
 
 **Roughly one session a day, no pattern in the hour.** Automated, unattended, and indifferent to whether the previous attempt succeeded.
 
-**Every session re-uploads the full seven-file set before running the chain.** No session checks whether the payload is already present, and no session skips a file. The routine is fixed and stateless - it behaves the same on a host it visited yesterday as on one it has never seen.
-
-**The rule change on 28 Aug is mine, not theirs.** Earlier sessions match generic rule `100303` (*attacker executed command*); later ones match custom rule `100311` (*SSH backdoor with immutable protection*), written from the first-window findings. Attacker behaviour is unchanged across that boundary - the detection improved.
+**Every session re-uploads the full seven-file set before running the chain.** No session checks whether the payload is already present, and no session skips a file. The routine is fixed and stateless.
 
 ---
 
@@ -89,8 +72,6 @@ Both IPs brute-forced. The difference is how quickly they hit a pair the honeypo
 **The gap is wordlist ordering, not capability.** `root`/`admin` sits at the top of most dictionaries and is in Cowrie's accept-list here, so `130.12.180.51` landed immediately. `77.90.185.20` worked through 151 pairs before reaching one the honeypot would take. Neither had prior knowledge of the host.
 
 **That makes the attempt count a property of my configuration, not of the attacker.** Against a real host with different credentials, both would have behaved the same way and probably failed. The figure is recorded because it is what happened, not because it distinguishes the two sources.
-
-Both succeeded as `root`. Whether `77.90.185.20` also tried other usernames was not checked.
 
 ---
 
@@ -113,17 +94,15 @@ Four stages: **clear competitors, install miner, backdoor, confirm.**
 
 **Persistence is not in the uploaded files.** It is typed into the session. That is why neither script contains a cron entry or a systemd unit - the backdoor is an SSH key, written directly.
 
-**`>` overwrites, it does not append.** Every existing key on the host is destroyed. The operator is not sharing access.
+**They use `>` to overwrite entire `authorized_keys` file.** Every existing key on the host is destroyed.
 
-**`chattr -ia` then `chattr +ai`** - strip whatever immutability a previous actor set, write, then set immutable and append-only so the next one can't. The same technique `clean.sh` uses against rival miners, turned on the backdoor itself.
+**`chattr -ia` then `chattr +ai`** - strip whatever immutability a previous actor set, write, then set immutable and append-only so the next one can't. The same technique `clean.sh` uses against rival miners.
 
-**The last line is `auth_ok\n` in hex escapes.** A success beacon obfuscated against string matching on the operator's own output. Costs nothing, defeats naive grep.
+**The last line is `auth_ok\n` in hex escapes.** A success beacon obfuscated against string matching on the operator's own output.
 
-### The key is 2.5 years old
+### The key is 2.5 years old - generated on 29 June 2023
 
-The RSA key is **byte-identical** to the one recorded in SANS ISC's February 2024 honeypot analysis of RedTail. Same modulus, same comment: `rsa-key-20230629`.
-
-That comment is PuTTYgen's default naming - the keypair was generated **29 June 2023**.
+The RSA key is **byte-identical** to the one recorded in other analysis of RedTail. Same modulus, same comment: `rsa-key-20230629`.
 
 **The payload gets rebuilt. The key does not.** Hash IOCs for the binaries have a shelf life measured in months; this key has held across two and a half years and multiple independent honeypots. It is the most durable indicator in the campaign.
 
@@ -143,29 +122,7 @@ Seven artifacts, the same set from both IPs, in every session:
 | `d70f917e…` | miner, ARM |
 | `3f3bf218…` | miner, RISC-V 64 |
 
-Two scripts, five miner binaries, one per architecture.
-
-### Packing
-
-`file` reported **no section header** on every miner binary. The ELF section header table maps the file's parts; compilers always emit it, and UPX discards it because after compression there are no separate sections left to describe. First signal, one command.
-
-`strings` confirmed the packer - `UPX!` on the first line, then 4-6 character fragments of compressed data. UPX writes its marker three times and makes no attempt to hide.
-
-One pass classified the folder:
-
-```bash
-for f in *; do echo -n "$f: "; strings "$f" | grep -c "UPX!"; done
-```
-
-**Every file reporting no section header returned a non-zero count. Every other file returned zero.** Two independent signals, same answer.
-
-### What packing costs the defender
-
-| | Packed | Unpacked |
-|---|---|---|
-| Strings, min length 10 | 75 | 6,593 |
-
-A third of the size, and effectively nothing readable. Signatures don't match the original binary and string triage returns noise.
+Two scripts, five miner binaries - one per architecture.
 
 ### Unpacking
 
@@ -193,11 +150,9 @@ One packer version across five architectures means one build run on one toolchai
 CantUnpackException: unknown format 45
 ```
 
-**This looked like anti-analysis and wasn't.** Format 45 is `linux/riscv64`, added upstream in UPX 5.1.0 (07 Jan 2026). The installed unpacker was UPX 4.2.2 from the Ubuntu repo, dated January 2024 - two years older than the format. UPX 5.2.1 unpacked it cleanly and named the format itself, rather than leaving it to inference.
+**This looked like anti-analysis and wasn't.** The installed unpacker was UPX 4.2.2 from the Ubuntu repo, dated January 2024 - two years older than the format. UPX 5.2.1 unpacked it cleanly.
 
 **No published RedTail analysis documents a RISC-V build.** Reporting from 2024 through mid-2026 lists four architectures: x86_64, i686, arm7/armv7, arm8/aarch64. `setup.sh` here has five branches, and the matching binary was uploaded in every session.
-
-The unpacked RISC-V binary is the smallest of the set with the worst compression ratio - consistent with its instruction encoding and fewer architecture-specific OpenSSL assembly routines. The payload itself is unremarkable. **The finding is the targeting, not the code.**
 
 ---
 
@@ -213,16 +168,6 @@ All five unpacked binaries are **XMRig-derived Monero miners**, statically linke
 | Environment variables | `XMRIG_CWD`, `XMRIG_EXE`, `XMRIG_VERSION`, `XMRIG_KIND` |
 | Async I/O library | `uv_fs_open`, `uv__check_before_write` |
 | Static linking | OpenSSL CRYPTOGAMS assembly banners |
-
-**Most of 6,593 strings are library noise.** Static linking pulls in OpenSSL, libuv and libc wholesale, including their test data - the binary contains Lorem ipsum. Separating the author's strings from the libraries' is the work.
-
-### Nothing to pivot on
-
-The binaries contain **no pool address, no wallet, no C2, no attacker domain**. Every domain recovered belongs to stock XMRig or a linked library. The only IP is `127.0.0.1`, XMRig's default API bind.
-
-`stratum+ssl://%s` explains it - `%s` is a format placeholder, so the pool URL is assembled at runtime from a value supplied externally. The `XMRIG_*` environment variable names support that.
-
-**For defenders:** IOCs taken from the miner binary will not lead to the operator's infrastructure. Pool and wallet have to come from process arguments or network telemetry.
 
 ### Cross-architecture
 
@@ -289,73 +234,23 @@ Two IPs, one identity, same key comment, different delivery:
 
 Both append `ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIKmYl4Yh… dj@vanta` to `/root/.ssh/authorized_keys`. `87.58.204.98` also deploys a second, different RSA key under the same comment, and at one point runs `rm -f /root/.ssh/authorized_keys` before rewriting - the same exclusivity behaviour RedTail shows, from a different actor.
 
-**Distinguishing features:** ed25519 not RSA, `/root/.ssh/` not `~/.ssh/`, `chmod 600` not `chattr +ai`, verification with `grep -c` after writing, and no payload at all.
-
-### `94f2e4d8…`
-
-An ELF x86-64, dynamically linked, stripped, **not packed** - intact section headers and a BuildID. Uploaded by three unrelated IPs (`194.225.131.66`, `103.107.159.75`, `89.126.222.163`), none of which touched RedTail. Unanalysed.
-
----
-
-## Indicators
-
-**Durable - survives rebuilds**
-
-| Indicator |
-|---|
-| SSH key `…UMRr rsa-key-20230629` in `authorized_keys` - unchanged since 2023, seen in 2024 reporting |
-| `chattr -ia` on `authorized_keys`, write, then `chattr +ai` |
-| `authorized_keys` overwritten rather than appended |
-| `echo -e "\x61\x75\x74\x68\x5F\x6F\x6B\x0A"` - hex-escaped `auth_ok` beacon |
-| Sequence: `clean.sh` then `setup.sh`, each `rm -rf`'d immediately |
-
-**Behavioural**
-
-| Indicator |
-|---|
-| Hidden executable, random 4-35 char name, in a user-writable directory outside noexec mounts |
-| Process invoked with the single argument `ssh` |
-| `c3pool_miner` / `bot.service` stopped and disabled |
-| `chattr -ia` on cron paths followed by selective line removal |
-| `/tmp`, `/var/tmp`, `/dev/shm` emptied |
-| `.testfile` / `.testfile2` created and deleted, 2 MB, across writable directories |
-
-**Network** - stratum egress, TCP or TLS, non-standard port. Pool address not recoverable from the binary.
-
-**Fragile** - the seven SHA-256 values. Held steady for twelve days here, but 2024 reporting shows them rotating per batch.
-
-**Detect on the chain, not the payload.** The key, the `chattr` pattern and the hex beacon have outlived multiple payload rebuilds. The hashes will not.
-
 ---
 
 ## Conclusions
 
 **One kit, two rented hosts.** Both IPs delivered byte-identical files and both brute-forced their way in. Different ASNs, different countries, same payload - infrastructure rented separately to run the same operation.
 
-**The infrastructure is older than the payload.** Binaries packed with a UPX release from June 2026; the SSH backdoor key generated in June 2023 and still in use, byte-identical to a 2024 SANS capture. Tooling gets rebuilt, identity doesn't.
+**The infrastructure is older than the payload.** Binaries packed with a UPX release from June 2026; the SSH backdoor key generated in June 2023 and still in use, byte-identical to other RedTail reports.
 
 **Access is exclusive, not shared.** `authorized_keys` is overwritten and locked immutable, competing miners are stripped out of cron, and `/tmp`, `/var/tmp` and `/dev/shm` are emptied. Most of the effort goes into denying the host to anyone else.
 
-**The binary is a dead end for attribution.** No pool, no wallet, no C2. Configuration is external by design, so static analysis alone cannot reach the operator.
-
-**A RISC-V build is being deployed that published analysis has not recorded**, in every session, alongside the four documented architectures.
-
-**The one apparent anti-analysis measure was my own tooling.** The RISC-V unpack failure looked deliberate and was a two-year-old copy of UPX. Nothing in the sample set resists analysis beyond the packing itself.
+**A RISC-V build is being deployed that published analysis have not recorded until now**, in every session, alongside the four documented architectures.
 
 ---
 
 ## Still open
 
-| Item | Needs |
-|---|---|
-| Usernames tried by `77.90.185.20` | Only the successful `root` login was checked - the full attempt list wasn't reviewed |
-| The `ssh` argument | Ghidra, argument handling |
-| Where configuration comes from | Dynamic analysis |
-| Pool, wallet, C2 | Instrumented sandbox |
-| `94f2e4d8…` | Static triage - unpacked and dynamically linked, so cheaper than the rest |
-| MITRE ATT&CK mapping | - |
-
-**The honeypot is still collecting.** The same hashes have held for twelve days; 2024 reporting shows this family rotating hashes per batch, so a rebuild is expected. Sample hashes, packer versions and the SSH key will be tracked across future sessions to establish the rebuild cadence and catch further architecture additions.
+**The honeypot is still collecting.** The same hashes have held for twelve days; other reports show this family rotating hashes per batch, so a rebuild is expected. Sample hashes, packer versions and the SSH key will be tracked across future sessions to establish the rebuild cadence and catch further architecture additions.
 
 ---
 
